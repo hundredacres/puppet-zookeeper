@@ -107,7 +107,7 @@ class zookeeper(
     peer_type               => $peer_type,
     min_session_timeout     => $min_session_timeout,
     max_session_timeout     => $max_session_timeout,
-    maange_config           => $manage_config,
+    manage_config           => $manage_config,
   }->
   class { 'zookeeper::service':
     cfg_dir      => $cfg_dir,
