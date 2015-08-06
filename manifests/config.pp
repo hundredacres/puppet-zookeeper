@@ -57,6 +57,7 @@ class zookeeper::config(
   $leader                  = true,
   $min_session_timeout     = undef,
   $max_session_timeout     = undef,
+  $manage_config           = true,
 ) {
   require zookeeper::install
 
@@ -110,12 +111,14 @@ class zookeeper::config(
     require => File["${cfg_dir}/myid"]
   }
 
-  file { "${cfg_dir}/zoo.cfg":
-    owner   => $user,
-    group   => $group,
-    mode    => '0644',
-    content => template('zookeeper/conf/zoo.cfg.erb'),
-    notify  => Class['zookeeper::service'],
+  if $manage_config {
+    file { "${cfg_dir}/zoo.cfg":
+      owner   => $user,
+      group   => $group,
+      mode    => '0644',
+      content => template('zookeeper/conf/zoo.cfg.erb'),
+      notify  => Class['zookeeper::service'],
+    }
   }
 
   file { "${cfg_dir}/environment":

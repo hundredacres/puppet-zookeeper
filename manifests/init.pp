@@ -57,6 +57,7 @@ class zookeeper(
   $java_package            = undef,
   $min_session_timeout     = undef,
   $max_session_timeout     = undef,
+  $manage_config           = true,
 ) {
 
   validate_array($packages)
