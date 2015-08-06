@@ -110,8 +110,9 @@ class zookeeper(
     manage_config           => $manage_config,
   }->
   class { 'zookeeper::service':
-    cfg_dir      => $cfg_dir,
-    service_name => $service_name,
+    cfg_dir       => $cfg_dir,
+    service_name  => $service_name,
+    manage_config => $manage_config,
   }
   ->
   anchor { 'zookeeper::end': }

@@ -4,6 +4,7 @@ class zookeeper::service(
   $cfg_dir        = '/etc/zookeeper/conf',
   $service_name   = 'zookeeper',
   $service_ensure = 'running',
+  $manage_config  = true,
 ){
   require zookeeper::install
 
@@ -30,14 +31,16 @@ class zookeeper::service(
     }
   }
 
-  service { $service_name:
-    ensure     => $service_ensure,
-    hasstatus  => true,
-    hasrestart => true,
-    enable     => true,
-    require    => [
-      Class['zookeeper::install'],
-      File["${cfg_dir}/zoo.cfg"]
-    ]
+  if $manage_config {
+    service { $service_name:
+      ensure     => $service_ensure,
+      hasstatus  => true,
+      hasrestart => true,
+      enable     => true,
+      require    => [
+        Class['zookeeper::install'],
+        File["${cfg_dir}/zoo.cfg"]
+      ]
+    }
   }
 }
