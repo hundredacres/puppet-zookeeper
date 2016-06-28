@@ -50,6 +50,19 @@ describe 'zookeeper::config', :type => :class do
       it {
         should contain_file('/etc/zookeeper/conf/zoo.cfg').with_content(/snapCount=15000/)
       }
+
+      # leave the default value to be determined by ZooKeeper
+      it 'does not set maxClientCnxns by default' do
+        # due to problem with should_not not matcher, we're using more complicated way
+        should contain_file(
+        '/etc/zookeeper/conf/zoo.cfg'
+        ).with_content(/^#maxClientCnxns=/)
+      end
+
+      # by default do not set client IP address
+      it { should contain_file(
+        '/etc/zookeeper/conf/zoo.cfg'
+      ).with_content(/^#clientPortAddress=/) }
     end
 
     context 'max allowed connections' do
@@ -74,28 +87,6 @@ describe 'zookeeper::config', :type => :class do
         '/etc/zookeeper/conf/zoo.cfg'
       ).with_content(/clientPortAddress=#{ipaddress}/) }
     end
-
-
-    context 'quorum file' do
-      ipaddress = '192.168.1.1'
-      let(:facts) {{
-        :operatingsystem => os,
-        :osfamily => 'Debian',
-        :lsbdistcodename => codename,
-        :ipaddress => ipaddress
-      }}
-
-      it { should create_datacat_fragment('192.168.1.1').with_data(
-        {"id"=>myid, "client_ip"=>"192.168.1.1", "election_port"=>"2888", "leader_port"=>"3888"}
-      )}
-    end
-
-    #  it { should contain_file(
-    #    '/etc/zookeeper/conf/quorum.yml'
-    #  )}
-    #it { should contain_datacat__fragment("#{ipaddress}") }
-
-    #  it { should contain_concat__fragment("zookeeper_#{ipaddress}") }
 
     context 'setting tick time' do
       tick_time = 3000
@@ -298,6 +289,21 @@ describe 'zookeeper::config', :type => :class do
     it { should contain_file(
       '/etc/zookeeper/conf/zoo.cfg'
     ).with_content(/maxSessionTimeout=50000/) }
+  end
+
+
+  context 'make sure port is not included in server IP/hostname' do
+    let(:params) {{
+      :servers => ['192.168.1.1:2888', '192.168.1.2:2333'],
+    }}
+
+    it { should contain_file(
+      '/etc/zookeeper/conf/zoo.cfg'
+    ).with_content(/server.1=192.168.1.1:2888:3888/) }
+
+    it { should contain_file(
+      '/etc/zookeeper/conf/zoo.cfg'
+    ).with_content(/server.2=192.168.1.2:2888:3888/) }
   end
 
 end

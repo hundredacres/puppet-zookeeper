@@ -24,7 +24,8 @@ class zookeeper::config(
   $datastore               = '/var/lib/zookeeper',
   $datalogstore            = undef,
   $initialize_datastore    = false,
-  $client_ip               = $::ipaddress,
+  # use either IP address, or a fact, e.g.: $::ipaddress
+  $client_ip               = undef,
   $client_port             = 2181,
   $election_port           = 2888,
   $leader_port             = 3888,
@@ -35,8 +36,8 @@ class zookeeper::config(
   $group                   = 'zookeeper',
   $java_bin                = '/usr/bin/java',
   $java_opts               = '',
-  $pid_dir                 = '/var/run/zookeeper',
-  $pid_file                = '$PIDDIR/zookeeper.pid',
+  $pid_dir                 = '/var/run',
+  $pid_file                = undef,
   $zoo_main                = 'org.apache.zookeeper.server.quorum.QuorumPeerMain',
   $log4j_prop              = 'INFO,ROLLINGFILE',
   $servers                 = [''],
@@ -48,7 +49,7 @@ class zookeeper::config(
   # log4j properties
   $rollingfile_threshold   = 'ERROR',
   $tracefile_threshold     = 'TRACE',
-  $max_allowed_connections = 10,
+  $max_allowed_connections = undef,
   $export_tag              = 'zookeeper',
   $peer_type               = 'UNSET',
   $tick_time               = 2000,
@@ -58,8 +59,18 @@ class zookeeper::config(
   $min_session_timeout     = undef,
   $max_session_timeout     = undef,
   $manage_config           = true,
+  # systemd_unit_want and _after can be overridden to
+  # donate the matching directives in the [Unit] section
+  $systemd_unit_want       = undef,
+  $systemd_unit_after      = 'network.target',
 ) {
-  require zookeeper::install
+  require ::zookeeper::install
+
+  if $pid_file {
+    $pid_path = $pid_file
+  } else {
+    $pid_path = "${pid_dir}/zookeeper.pid"
+  }
 
   file { $cfg_dir:
     ensure  => directory,
@@ -73,7 +84,7 @@ class zookeeper::config(
     ensure  => directory,
     owner   => $user,
     group   => $group,
-    recurse => true,
+    recurse => false,
     mode    => '0644',
   }
 
@@ -82,7 +93,7 @@ class zookeeper::config(
     owner   => $user,
     group   => $group,
     mode    => '0644',
-    recurse => true,
+    recurse => false, # intentionally, puppet run would take too long #41
   }
 
   if $datalogstore {
@@ -91,10 +102,12 @@ class zookeeper::config(
       owner   => $user,
       group   => $group,
       mode    => '0644',
-      recurse => true,
+      recurse => false, # intentionally, puppet run would take too long #41
     }
   }
 
+  # we should notify Class['::zookeeper::service'] however it's not configured
+  # at this point (first run), so we have to subscribe from service declaration
   file { "${cfg_dir}/myid":
     ensure  => file,
     content => template('zookeeper/conf/myid.erb'),
@@ -102,7 +115,6 @@ class zookeeper::config(
     group   => $group,
     mode    => '0644',
     require => File[$cfg_dir],
-    notify  => Class['zookeeper::service'],
   }
 
   file { "${datastore}/myid":
@@ -117,7 +129,6 @@ class zookeeper::config(
       group   => $group,
       mode    => '0644',
       content => template('zookeeper/conf/zoo.cfg.erb'),
-      notify  => Class['zookeeper::service'],
     }
   }
 
@@ -126,7 +137,6 @@ class zookeeper::config(
     group   => $group,
     mode    => '0644',
     content => template('zookeeper/conf/environment.erb'),
-    notify  => Class['zookeeper::service'],
   }
 
   file { "${cfg_dir}/log4j.properties":
@@ -134,15 +144,6 @@ class zookeeper::config(
     group   => $group,
     mode    => '0644',
     content => template('zookeeper/conf/log4j.properties.erb'),
-    notify  => Class['zookeeper::service'],
-  }
-
-  # keep track of all hosts in a cluster
-  zookeeper::host { $client_ip:
-    id            => $id,
-    client_ip     => $client_ip,
-    election_port => $election_port,
-    leader_port   => $leader_port,
   }
 
   # Initialize the datastore if required

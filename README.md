@@ -7,8 +7,8 @@ A puppet receipt for [Apache Zookeeper](http://zookeeper.apache.org/). ZooKeeper
 
 ## Requirements
 
-  * Puppet 2.7, Puppet 3.x
-  * Ruby 1.8.7, 1.9.3, 2.0.0, 2.1.x
+  * Puppet >= 2.7, Puppet 3.x, Puppet 4.x
+  * Ruby 1.9.3, 2.0.0, 2.1.x
   * binary package of ZooKeeper
 
 ## Basic Usage:
@@ -67,10 +67,12 @@ class { 'zookeeper':
   observers => ['192.168.1.4', '192.168.1.5']
 }
 ```
+**Note**: Currently observer server needs to be listed between standard servers (this behavior might change in feature).
 
-### Setting IP address
+### Set binding interface
 
-If `$::ipaddress` is not your public IP (e.g. you are using Docker) make sure to setup correct IP:
+By default ZooKeeper should bind to all interfaces. When you specify `client_ip` only single interface
+will be used. If `$::ipaddress` is not your public IP (e.g. you are using Docker) make sure to setup correct IP:
 
 ```puppet
 class { 'zookeeper':
@@ -86,16 +88,69 @@ zookeeper::client_ip: "%{::ipaddress_eth0}"
 
 This is a workaround for a a [Facter issue](https://tickets.puppetlabs.com/browse/FACT-380).
 
+### ZooKeeper service
+
+Use `service_provider` to override Puppet detection for starting service.
+
+```puppet
+class { 'zookeeper':
+  service_provider    => 'init',
+  manage_service_file => false,
+}
+```
+
+Some reasonable values are:
+
+  * `init` - RHEL6, Debian 7
+  * `upstart` - Ubuntu
+  * `systemd` - RHEL 7, Debian 8
+  * `runit`
+  * `none` - service won't be installed
+
+Parameter `manage_service_file` controls whether service definition should be managed by Puppet (default: `false`). Currently supported for `systemd` and `init`.
+
+
+### Systemd Unit 'After' and 'Want' control
+By default the module will create the following Unit section in /etc/systemd/system/multi-user.target.wants/zookeeper.service
+````
+[Unit]
+Description=Apache ZooKeeper
+After=network.target
+````
+
+Both After and Want (omitted when using the module defaults) can be controled using this module.
+
+E.g on CentOS 7 those might have to be configured for 'netwrok-online.target' using the following syntax:
+
+```puppet
+class { 'zookeeper':
+   systemd_unit_after => 'network-online.target',
+   systemd_unit_want => 'network-online.target',
+}
+```
+
+Which will modify the Unit section to look like:
+
+````
+[Unit]
+Description=Apache ZooKeeper
+Want=network-online.target
+After=network-online.target
+````
+
 ##  Parameters
 
    - `id` - cluster-unique zookeeper's instance id (1-255)
    - `datastore`
-   - `datalogstore` - specifying this configures the dataLogDir Zookeeper config values and allows for transaction logs to be stored in a different location, improving IO performance
+   - `datalogstore` - specifying this configures the `dataLogDir` ZooKeeper config values and allows for transaction logs to be stored in a different location, improving IO performance
    - `log_dir`
-   - `purge_interval` - automatically will delete zookeeper logs (available since 3.4.0)
-   - `snap_retain_count` - number of snapshots that will be kept after purging (since 3.4.0)
-   - `min_session_timeout` - the minimum session timeout in milliseconds that the server will allow the client to negotiate. Defaults to 2 times the **tickTime** (since 3.3.0)
-   - `max_session_timeout` - the maximum session timeout in milliseconds that the server will allow the client to negotiate. Defaults to 20 times the **tickTime** (since 3.3.0)
+   - `purge_interval` - automatically will delete ZooKeeper logs (available since ZooKeeper 3.4.0)
+   - `snap_retain_count` - number of snapshots that will be kept after purging (since ZooKeeper 3.4.0)
+   - `min_session_timeout` - the minimum session timeout in milliseconds that the server will allow the client to negotiate. Defaults to 2 times the **tickTime** (since ZooKeeper 3.3.0)
+   - `max_session_timeout` - the maximum session timeout in milliseconds that the server will allow the client to negotiate. Defaults to 20 times the **tickTime** (since ZooKeeper 3.3.0)
+   - `manage_service` (default: `true`) whether Puppet should ensure running service
+   - `manage_service_file` when enabled on RHEL 7.0 a systemd config will be managed
+   - `ensure_account` controls whether `zookeeper` user and group will be ensured (set to `false` to disable this feature)
 
 and many others, see the `init.pp` file for more details.
 
@@ -135,14 +190,29 @@ class { 'zookeeper':
 
 ### Managing repository
 
-For RedHat family curretly we support also managing an yum repo. It can be enabled with `repo` parameter:
+For RedHat family currently we support also managing a `cloudera` yum repo versions 4, and 5. It can be enabled with `repo` parameter:
 
 ```puppet
 class { 'zookeeper':
-  repo => 'cloudera'
+  repo   => 'cloudera',
+  cdhver => '5',
 }
 ```
 
+#### Custom RPM repository
+
+Optionally you can specify a custom repository, using a hash configuration.
+
+```puppet
+class { 'zookeeper':
+  cdhver     => '5',
+  repo       =>  {
+    name  => 'myrepo',
+    url   => 'http://cusom.url',
+    descr => 'description'
+  }
+}
+```
 
 ## Java installation
 
@@ -182,6 +252,7 @@ If you are versioning your puppet conf with git just add it as submodule, from y
 ## Dependencies
 
   * stdlib `> 2.3.3` - function `ensure_resources` is required
+  * datacat - experimental (might be removed in future releases)
 
 ## Supported platforms
 
@@ -192,7 +263,6 @@ If you are versioning your puppet conf with git just add it as submodule, from y
 
 ### Tested on:
 
-  * Debian 6 Squeeze, 7 Wheezy
+  * Debian 6 - Squeeze, 7 - Wheezy, 8 - Jessie
   * Ubuntu 12.04.03 LTS, 14.04
-  * CentOS 6
-
+  * RHEL 6, RHEL 7, CentOS 6
