@@ -26,8 +26,8 @@ class zookeeper(
   $log_dir                 = '/var/log/zookeeper',
   $cfg_dir                 = '/etc/zookeeper/conf',
   $zoo_dir                 = '/usr/lib/zookeeper',
-  $user                    = 'zookeeper',
-  $group                   = 'zookeeper',
+  $user                    = $::zookeeper::params::user,
+  $group                   = $::zookeeper::params::group,
   $ensure_account          = present,
   $java_bin                = '/usr/bin/java',
   $java_opts               = '',
@@ -63,6 +63,7 @@ class zookeeper(
   $min_session_timeout     = undef,
   $max_session_timeout     = undef,
   $manage_config           = true,
+  $use_sasl_auth           = false,
   $manage_systemd          = undef,
   $repo                    = undef,
   # systemd_unit_want and _after can be overridden to
@@ -89,10 +90,16 @@ class zookeeper(
   }
 
   if ($manage_systemd) {
-    warning('Parameter `manage_systemd` is deprecated, use `manage_service_file` instead. `manage_systemd` will be removed in next major release.')
+    warning('Parameter `manage_systemd` is deprecated, use `manage_service_file` instead, it will be removed in next major release.')
     $_manage_service_file = $manage_systemd
   } else {
     $_manage_service_file = $manage_service_file
+  }
+
+  if $pid_file {
+    $pid_path = $pid_file
+  } else {
+    $pid_path = "${pid_dir}/zookeeper.pid"
   }
 
   anchor { 'zookeeper::start': }->
@@ -129,7 +136,7 @@ class zookeeper(
     java_bin                => $java_bin,
     java_opts               => $java_opts,
     pid_dir                 => $pid_dir,
-    pid_file                => $pid_file,
+    pid_path                => $pid_path,
     zoo_main                => $zoo_main,
     log4j_prop              => $log4j_prop,
     servers                 => $servers,
@@ -144,8 +151,17 @@ class zookeeper(
     min_session_timeout     => $min_session_timeout,
     max_session_timeout     => $max_session_timeout,
     manage_config           => $manage_config,
+    use_sasl_auth           => $use_sasl_auth,
     systemd_unit_want       => $systemd_unit_want,
     systemd_unit_after      => $systemd_unit_after,
+  }
+
+  if ($use_sasl_auth) {
+    class { 'zookeeper::sasl':
+      cfg_dir => $cfg_dir,
+      require => Class['::zookeeper::config'],
+      before  => Class['::zookeeper::service'],
+    }
   }
 
   if ($manage_service) {
@@ -159,7 +175,7 @@ class zookeeper(
       before              => Anchor['zookeeper::end'],
       user                => $user,
       group               => $group,
-      pid_file            => $pid_file,
+      pid_path            => $pid_path,
       zoo_main            => $zoo_main,
       log_dir             => $log_dir,
       log4j_prop          => $log4j_prop

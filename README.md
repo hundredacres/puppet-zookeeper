@@ -1,13 +1,14 @@
 #puppet-zookeeper
 
 [![Puppet
-Forge](http://img.shields.io/puppetforge/v/deric/zookeeper.svg)](https://forge.puppetlabs.com/deric/zookeeper) [![Build Status](https://travis-ci.org/deric/puppet-zookeeper.png?branch=master)](https://travis-ci.org/deric/puppet-zookeeper)
+Forge](http://img.shields.io/puppetforge/v/deric/zookeeper.svg)](https://forge.puppetlabs.com/deric/zookeeper) [![Build Status](https://travis-ci.org/deric/puppet-zookeeper.png?branch=master)](https://travis-ci.org/deric/puppet-zookeeper) [![Puppet Forge
+Downloads](http://img.shields.io/puppetforge/dt/deric/zookeeper.svg)](https://forge.puppetlabs.com/deric/zookeeper/scores)
 
 A puppet receipt for [Apache Zookeeper](http://zookeeper.apache.org/). ZooKeeper is a high-performance coordination service for maintaining configuration information, naming, providing distributed synchronization, and providing group services.
 
 ## Requirements
 
-  * Puppet >= 2.7, Puppet 3.x, Puppet 4.x
+  * Puppet 3.x, Puppet 4.x
   * Ruby 1.9.3, 2.0.0, 2.1.x
   * binary package of ZooKeeper
 
@@ -38,10 +39,14 @@ For defining a quorum it is enough to list all IP addresses of all its members.
 
 ```puppet
 class { 'zookeeper':
-  servers => ['192.168.1.1', '192.168.1.2', '192.168.1.3']
+  servers => {
+    1 => '192.168.1.1',
+    2 => '192.168.1.2',
+    3 => '192.168.1.3',
+  },
 }
 ```
-Currently, first ZooKeeper in the array above, will be assigned `ID = 1`. This would produce following configuration:
+In case that an array is passed as `servers`, first ZooKeeper will be assigned `ID = 1`. This would produce following configuration:
 ```
 server.1=192.168.1.1:2888:3888
 server.2=192.168.1.2:2888:3888
@@ -53,7 +58,11 @@ where first port is `election_port` and second one `leader_port`. Both ports cou
 class { 'zookeeper':
   election_port => 2889,
   leader_port   => 3889,
-  servers       => ['192.168.1.1', '192.168.1.2', '192.168.1.3']
+  servers       => {
+    1 => '192.168.1.1',
+    2 => '192.168.1.2',
+    3 => '192.168.1.3',
+  }
 }
 ```
 
@@ -252,7 +261,6 @@ If you are versioning your puppet conf with git just add it as submodule, from y
 ## Dependencies
 
   * stdlib `> 2.3.3` - function `ensure_resources` is required
-  * datacat - experimental (might be removed in future releases)
 
 ## Supported platforms
 

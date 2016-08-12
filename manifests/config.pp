@@ -17,7 +17,7 @@
 #
 # Requires: zookeeper::install, zookeeper
 #
-# Sample Usage: include zookeeper::config
+# Do not include class directly (use main `zookeeper` class).
 #
 class zookeeper::config(
   $id                      = '1',
@@ -37,7 +37,7 @@ class zookeeper::config(
   $java_bin                = '/usr/bin/java',
   $java_opts               = '',
   $pid_dir                 = '/var/run',
-  $pid_file                = undef,
+  $pid_path                = undef,
   $zoo_main                = 'org.apache.zookeeper.server.quorum.QuorumPeerMain',
   $log4j_prop              = 'INFO,ROLLINGFILE',
   $servers                 = [''],
@@ -59,18 +59,13 @@ class zookeeper::config(
   $min_session_timeout     = undef,
   $max_session_timeout     = undef,
   $manage_config           = true,
+  $use_sasl_auth           = false,
   # systemd_unit_want and _after can be overridden to
   # donate the matching directives in the [Unit] section
   $systemd_unit_want       = undef,
   $systemd_unit_after      = 'network.target',
 ) {
   require ::zookeeper::install
-
-  if $pid_file {
-    $pid_path = $pid_file
-  } else {
-    $pid_path = "${pid_dir}/zookeeper.pid"
-  }
 
   file { $cfg_dir:
     ensure  => directory,
