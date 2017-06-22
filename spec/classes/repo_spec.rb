@@ -1,7 +1,7 @@
 require 'spec_helper'
 
-describe 'zookeeper::repo', :type => :class do
-  shared_examples 'redhat-install' do |os, codename, puppet|
+describe 'zookeeper::install::repo' do
+  shared_examples 'redhat-install' do |os, codename, puppet, cdhver, precond|
     let(:hardwaremodel){ 'x86_64' }
 
     let(:facts) do
@@ -15,22 +15,29 @@ describe 'zookeeper::repo', :type => :class do
       :puppetversion => puppet,
     }
     end
+
+    # load class, handle custom params
+    let :pre_condition do
+      precond
+    end
+
+    it { is_expected.to contain_yumrepo('cloudera-cdh5').with({
+        baseurl: "http://archive.cloudera.com/cdh#{cdhver}/redhat/#{codename}/#{hardwaremodel}/cdh/#{cdhver}/"
+      }) }
   end
 
   context 'on RedHat-like system' do
     let(:user) { 'zookeeper' }
     let(:group) { 'zookeeper' }
 
-    let(:params) do
-      {
-      :source => 'cloudera',
-      :cdhver => '5'
-    }
-    end
+    precond = 'class {"zookeeper":
+      repo   => "cloudera",
+      cdhver => "5",
+    }'
     # ENV variable might contain characters which are not supported
     # by versioncmp function (like '~>')
 
-    it_behaves_like 'redhat-install', 'RedHat', '7', Puppet.version
+    it_behaves_like 'redhat-install', 'RedHat', '7', Puppet.version, '5', precond
   end
 
   context 'fail when architecture not supported' do
@@ -39,14 +46,15 @@ describe 'zookeeper::repo', :type => :class do
       :osfamily => 'RedHat',
       :operatingsystemmajrelease => '7',
       :hardwaremodel => 'arc',
+      :puppetversion => Puppet.version,
     }
     end
 
-    let(:params) do
-      {
-      :source => 'cloudera',
-      :cdhver => '5',
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+        repo   => "cloudera",
+        cdhver => "5",
+       }'
     end
 
     it do
@@ -62,14 +70,15 @@ describe 'zookeeper::repo', :type => :class do
       :operatingsystemmajrelease => '8',
       :hardwaremodel => 'x86_64',
       :osrel => '8',
+      :puppetversion => Puppet.version,
     }
     end
 
-    let(:params) do
-      {
-      :source => 'cloudera',
-      :cdhver => '5',
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+        repo   => "cloudera",
+        cdhver => "5",
+       }'
     end
 
     it do
@@ -80,19 +89,20 @@ describe 'zookeeper::repo', :type => :class do
 
   context 'fail when CDH version not supported' do
     let(:facts) do
-      {
+    {
       :osfamily => 'RedHat',
       :operatingsystemmajrelease => '7',
       :hardwaremodel => 'x86_64',
       :osrel => '7',
+      :puppetversion => Puppet.version,
     }
     end
 
-    let(:params) do
-      {
-      :source => 'cloudera',
-      :cdhver => '6',
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+        repo   => "cloudera",
+        cdhver => "6",
+       }'
     end
 
     it do
@@ -103,18 +113,19 @@ describe 'zookeeper::repo', :type => :class do
 
   context 'fail when repository source not supported' do
     let(:facts) do
-      {
+    {
       :osfamily => 'RedHat',
       :operatingsystemmajrelease => '7',
       :hardwaremodel => 'x86_64',
       :osrel => '7',
+      :puppetversion => Puppet.version,
     }
     end
 
-    let(:params) do
-      {
-      :source => 'another-repo',
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+        repo => "another-repo",
+       }'
     end
 
     it do

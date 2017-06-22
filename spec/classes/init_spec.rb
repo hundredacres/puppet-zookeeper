@@ -2,12 +2,13 @@ require 'spec_helper'
 
 describe 'zookeeper', :type => :class do
   let(:facts) do
-    {
-    :operatingsystem => 'Debian',
-    :osfamily        => 'Debian',
-    :lsbdistcodename => 'wheezy',
-    :majdistrelease  => '7',
-    :ipaddress       => '192.168.1.1',
+  {
+    :operatingsystem           => 'Debian',
+    :osfamily                  => 'Debian',
+    :lsbdistcodename           => 'wheezy',
+    :operatingsystemmajrelease => '7',
+    :ipaddress                 => '192.168.1.1',
+    :puppetversion             => Puppet.version,
   }
   end
 
@@ -15,7 +16,6 @@ describe 'zookeeper', :type => :class do
   it { is_expected.to contain_class('zookeeper::install') }
   it { is_expected.to contain_class('zookeeper::service') }
   it { is_expected.to compile.with_all_deps }
-
 
   context 'allow installing multiple packages' do
     let(:user) { 'zookeeper' }
@@ -27,14 +27,15 @@ describe 'zookeeper', :type => :class do
       }
     end
 
-    it { should contain_package('zookeeper').with({:ensure => 'present'}) }
-    it { should contain_package('zookeeper-bin').with({:ensure => 'present'}) }
-    it { should contain_service('zookeeper').with({:ensure => 'running'}) }
+    it { is_expected.to compile.with_all_deps }
+    it { is_expected.to contain_package('zookeeper').with({:ensure => 'present'}) }
+    it { is_expected.to contain_package('zookeeper-bin').with({:ensure => 'present'}) }
+    it { is_expected.to contain_service('zookeeper').with({:ensure => 'running'}) }
     # datastore exec is not included by default
-    it { should_not contain_exec('initialize_datastore') }
+    it { is_expected.not_to contain_exec('initialize_datastore') }
 
-    it { should contain_user('zookeeper').with({:ensure => 'present'}) }
-    it { should contain_group('zookeeper').with({:ensure => 'present'}) }
+    it { is_expected.to contain_user('zookeeper').with({:ensure => 'present'}) }
+    it { is_expected.to contain_group('zookeeper').with({:ensure => 'present'}) }
   end
 
   context 'Cloudera packaging' do
@@ -116,7 +117,7 @@ describe 'zookeeper', :type => :class do
     }
     end
 
-    it { should contain_class('zookeeper::repo') }
+    it { should contain_class('zookeeper::install::repo') }
     it { should contain_yumrepo('cloudera-cdh5') }
 
     context 'custom RPM repo' do
@@ -155,6 +156,7 @@ describe 'zookeeper', :type => :class do
         :ipaddress => '192.168.1.1',
         :osfamily => 'RedHat',
         :operatingsystemmajrelease => '7',
+        :puppetversion => Puppet.version,
       }
       end
       it { should contain_package('zookeeper').with({:ensure => 'present'}) }
@@ -172,12 +174,13 @@ describe 'zookeeper', :type => :class do
 
   context 'allow passing specific version' do
     let(:facts) do
-      {
+    {
       :ipaddress => '192.168.1.1',
       :osfamily => 'Debian',
       :operatingsystem => 'Ubuntu',
-      :majdistrelease => '14.04',
+      :operatingsystemmajrelease => '14.04',
       :lsbdistcodename => 'trusty',
+      :puppetversion => Puppet.version,
     }
     end
 
@@ -189,10 +192,10 @@ describe 'zookeeper', :type => :class do
     }
     end
 
-    it { should contain_package('zookeeper').with({:ensure => version}) }
-    it { should contain_package('zookeeperd').with({:ensure => version}) }
+    it { is_expected.to contain_package('zookeeper').with({:ensure => version}) }
+    it { is_expected.to contain_package('zookeeperd').with({:ensure => version}) }
 
-    it { should contain_user('zookeeper').with({:ensure => 'present'}) }
+    it { is_expected.to contain_user('zookeeper').with({:ensure => 'present'}) }
   end
 
   context 'upstart is used on Ubuntu' do
@@ -201,8 +204,9 @@ describe 'zookeeper', :type => :class do
       :ipaddress => '192.168.1.1',
       :osfamily => 'Debian',
       :operatingsystem => 'Ubuntu',
-      :majdistrelease => '14.04',
+      :operatingsystemmajrelease => '14.04',
       :lsbdistcodename => 'trusty',
+      :puppetversion => Puppet.version,
     }
     end
 
@@ -230,6 +234,7 @@ describe 'zookeeper', :type => :class do
       :ipaddress => '192.168.1.1',
       :osfamily => 'RedHat',
       :operatingsystemmajrelease => '6',
+      :puppetversion => Puppet.version,
     }
     end
 
@@ -258,5 +263,81 @@ describe 'zookeeper', :type => :class do
         '/etc/init.d/zookeeper-server'
       ).with_content(/pidfile=\/var\/run\/zookeeper.pid/)
     end
+  end
+
+  context 'create env file' do
+    let(:user) { 'zookeeper' }
+    let(:group) { 'zookeeper' }
+
+    context 'on RedHat' do
+      let(:facts) do
+        {
+        :ipaddress => '192.168.1.1',
+        :osfamily => 'RedHat',
+        :operatingsystemmajrelease => '6',
+        :puppetversion => Puppet.version,
+      }
+      end
+
+      it do
+        is_expected.to contain_file(
+          '/etc/zookeeper/conf/java.env'
+        )
+      end
+    end
+
+    context 'on Debian' do
+      let(:facts) do
+        {
+        :ipaddress => '192.168.1.1',
+        :osfamily => 'Debian',
+        :operatingsystem => 'Debian',
+        :lsbdistcodename => 'jessie',
+        :operatingsystemmajrelease => '8',
+        :puppetversion => Puppet.version,
+      }
+      end
+
+      it do
+        is_expected.to contain_file(
+          '/etc/zookeeper/conf/environment'
+        )
+      end
+    end
+
+  end
+
+  context 'managed by exhibitor' do
+    let(:params) do
+      {
+        :service_provider => 'exhibitor',
+        :service_name => 'zookeeper',
+        :cfg_dir => '/opt/zookeeper/conf',
+      }
+    end
+
+    it { is_expected.not_to contain_class('zookeeper::service') }
+    it { is_expected.not_to contain_service('zookeeper') }
+    it { is_expected.not_to contain_file('/opt/zookeeper/conf/zoo.cfg') }
+    it { is_expected.not_to contain_file('/opt/zookeeper/conf/myid') }
+  end
+
+  context 'install from archive' do
+    let(:params) do
+      {
+        install_method: 'archive',
+        archive_version: '3.4.9',
+      }
+    end
+
+    it { is_expected.to compile.with_all_deps }
+    it { is_expected.to contain_class('Zookeeper::Install::Archive') }
+
+    it { is_expected.not_to contain_package('zookeeper').with({:ensure => 'present'}) }
+    it { is_expected.to contain_service('zookeeper').with({:ensure => 'running'}) }
+
+    it { is_expected.to contain_user('zookeeper').with({:ensure => 'present'}) }
+    it { is_expected.to contain_group('zookeeper').with({:ensure => 'present'}) }
+
   end
 end

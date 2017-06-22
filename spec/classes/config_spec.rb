@@ -1,23 +1,32 @@
 require 'spec_helper'
 
-describe 'zookeeper::config', :type => :class do
+describe 'zookeeper::config' do
   let(:facts) do
     {
     :operatingsystem => 'Debian',
     :osfamily => 'Debian',
     :lsbdistcodename => 'wheezy',
+    :operatingsystemmajrelease => '7',
     :ipaddress => '192.168.1.1',
+    :puppetversion => Puppet.version,
   }
   end
 
-  shared_examples 'common' do |os, codename|
+  shared_examples 'common' do |os, codename, majrelease, precond|
     let(:facts) do
       {
       :operatingsystem => os,
       :osfamily => 'Debian',
       :lsbdistcodename => codename,
+      :operatingsystemmajrelease => majrelease,
       :ipaddress => '192.168.1.1',
+      :puppetversion => Puppet.version,
     }
+    end
+
+    # load class, handle custom params
+    let :pre_condition do
+      precond
     end
 
     it do
@@ -45,17 +54,17 @@ describe 'zookeeper::config', :type => :class do
     end
 
     context 'extra parameters' do
-      snap_cnt = 15000
       # set custom params
-      let(:params) do
-        {
-        :log4j_prop    => 'ERROR',
-        :snap_count    => snap_cnt,
-      }
+      let :pre_condition do
+        'class {"zookeeper":
+           log4j_prop => "ERROR",
+           snap_count => "15000",
+         }'
       end
 
       it do
         is_expected.to contain_file('/etc/zookeeper/conf/environment').with_content(/ERROR/)
+        is_expected.to contain_file('/etc/zookeeper/conf/environment').with_content(/CLASSPATH/)
       end
 
       it do
@@ -64,7 +73,7 @@ describe 'zookeeper::config', :type => :class do
 
       # leave the default value to be determined by ZooKeeper
       it 'does not set maxClientCnxns by default' do
-        # due to problem with should_not not matcher, we're using more complicated way
+        # due to problem with should_not not matching, we're using more complicated way
         is_expected.to contain_file(
           '/etc/zookeeper/conf/zoo.cfg'
         ).with_content(/^#maxClientCnxns=/)
@@ -78,74 +87,95 @@ describe 'zookeeper::config', :type => :class do
       end
     end
 
-    context 'max allowed connections' do
-      max_conn = 15
+    context 'install from archive' do
+      let :pre_condition do
+        'class {"zookeeper":
+           install_method: "archive",
+           archive_version: "3.4.9",
+        }'
 
-      let(:params) do
-        {
-        :max_allowed_connections => max_conn
-      }
+        it {is_expected.to contain_file('/etc/zookeeper/conf/environment').without_content(/CLASSPATH/)}
+
+      end
+    end
+
+    context 'extra environment_file parameter' do
+       # set custom params
+       let :pre_condition do
+         'class {"zookeeper":
+            log4j_prop => "ERROR",
+            environment_file => "java.env",
+          }'
+       end
+
+       it do
+         should contain_file('/etc/zookeeper/conf/java.env').with_content(/ERROR/)
+         should_not contain_file('/etc/zookeeper/environment')
+       end
+    end
+
+    context 'max allowed connections' do
+      let :pre_condition do
+        'class {"zookeeper":
+           max_allowed_connections => "15",
+         }'
       end
 
       it do
         is_expected.to contain_file(
           '/etc/zookeeper/conf/zoo.cfg'
-        ).with_content(/maxClientCnxns=#{max_conn}/)
+        ).with_content(/maxClientCnxns=15/)
       end
     end
 
     context 'set client ip address' do
-      ipaddress = '192.168.1.1'
-      let(:params) do
-        {
-        :client_ip => ipaddress
-      }
+      let :pre_condition do
+        'class {"zookeeper":
+           client_ip => "192.168.1.1",
+         }'
       end
 
       it do
         should contain_file(
           '/etc/zookeeper/conf/zoo.cfg'
-        ).with_content(/clientPortAddress=#{ipaddress}/)
+        ).with_content(/clientPortAddress=192.168.1.1/)
       end
     end
 
     context 'setting tick time' do
-      tick_time = 3000
-      let(:params) do
-        {
-        :tick_time => tick_time,
-      }
+      let :pre_condition do
+        'class {"zookeeper":
+           tick_time => "3000",
+         }'
       end
 
       it do
-        should contain_file('/etc/zookeeper/conf/zoo.cfg').with_content(/tickTime=#{tick_time}/)
+        should contain_file('/etc/zookeeper/conf/zoo.cfg').with_content(/tickTime=3000/)
       end
     end
 
     context 'setting init and sync limit' do
-      init_limit = 15
-      sync_limit = 10
-      let(:params) do
-        {
-        :init_limit => init_limit,
-        :sync_limit => sync_limit,
-      }
+      let :pre_condition do
+        'class {"zookeeper":
+           init_limit => "15",
+           sync_limit => "10",
+         }'
       end
 
       it do
-        should contain_file('/etc/zookeeper/conf/zoo.cfg').with_content(/initLimit=#{init_limit}/)
+        should contain_file('/etc/zookeeper/conf/zoo.cfg').with_content(/initLimit=15/)
       end
 
       it do
-        should contain_file('/etc/zookeeper/conf/zoo.cfg').with_content(/syncLimit=#{sync_limit}/)
+        should contain_file('/etc/zookeeper/conf/zoo.cfg').with_content(/syncLimit=10/)
       end
     end
 
     context 'setting leader' do
-      let(:params) do
-        {
-        :leader => false,
-      }
+      let :pre_condition do
+        'class {"zookeeper":
+           leader => false,
+         }'
       end
 
       it do
@@ -154,10 +184,10 @@ describe 'zookeeper::config', :type => :class do
     end
 
     context 'set peer_type to observer' do
-      let(:params) do
-        {
-        :peer_type => 'observer'
-      }
+      let :pre_condition do
+        'class {"zookeeper":
+           peer_type => "observer",
+         }'
       end
 
       it do
@@ -176,20 +206,20 @@ describe 'zookeeper::config', :type => :class do
     let(:id_file) { '/etc/zookeeper/conf/myid' }
     let(:myid)    { /1/ }
 
-    it_behaves_like 'common', 'Debian', 'wheezy'
+    precond = 'class {"zookeeper": }'
+
+    it_behaves_like 'common', 'Debian', 'wheezy', '7', precond
   end
 
   context 'custom parameters' do
     # set custom params
-    let(:params) do
-      {
-      :id      => '2',
-      :user    => 'zoo',
-      :group   => 'zoo',
-      :cfg_dir => '/var/lib/zookeeper/conf',
-      :log_dir => '/var/lib/zookeeper/log',
-    }
-    end
+    precond = 'class {"zookeeper":
+      id      => "2",
+      user    => "zoo",
+      group   => "zoo",
+      cfg_dir => "/var/lib/zookeeper/conf",
+      log_dir => "/var/lib/zookeeper/log",
+    }'
 
     let(:user)    { 'zoo' }
     let(:group)   { 'zoo' }
@@ -198,10 +228,14 @@ describe 'zookeeper::config', :type => :class do
     let(:id_file) { '/var/lib/zookeeper/conf/myid' }
     let(:myid)    { /2/ }
 
-    it_behaves_like 'common', 'Debian', 'wheezy'
+    it_behaves_like 'common', 'Debian', 'wheezy', '7', precond
   end
 
   context 'myid link' do
+    let :pre_condition do
+      'class {"zookeeper":}'
+    end
+
     it do
       should contain_file(
         '/var/lib/zookeeper/myid'
@@ -213,6 +247,10 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'without datalogstore parameter' do
+    let :pre_condition do
+      'class {"zookeeper":}'
+    end
+
     it do
       should contain_file(
         '/etc/zookeeper/conf/zoo.cfg'
@@ -221,10 +259,10 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'with datalogstore parameter' do
-    let(:params) do
-      {
-      :datalogstore => '/zookeeper/transaction/device',
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         datalogstore => "/zookeeper/transaction/device",
+       }'
     end
 
     let(:datalogstore) { '/zookeeper/transaction/device' }
@@ -243,12 +281,12 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'setting quorum of servers with custom ports' do
-    let(:params) do
-      {
-      :election_port => 3000,
-      :leader_port   => 4000,
-      :servers       => ['192.168.1.1', '192.168.1.2']
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         election_port => 3000,
+         leader_port   => 4000,
+         servers       => ["192.168.1.1", "192.168.1.2"],
+       }'
     end
 
     it do
@@ -265,12 +303,12 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'setting quorum of servers with custom ports with servers as hash' do
-    let(:params) do
-      {
-        :election_port => 3000,
-        :leader_port   => 4000,
-        :servers       => {'12' => '192.168.1.1', '23' => '192.168.1.2'}
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         election_port => 3000,
+         leader_port   => 4000,
+         servers       => {"12" => "192.168.1.1", "23" => "192.168.1.2"},
+       }'
     end
 
     it do
@@ -287,10 +325,10 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'setting quorum of servers with default ports' do
-    let(:params) do
-      {
-      :servers => ['192.168.1.1', '192.168.1.2']
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         servers => ["192.168.1.1", "192.168.1.2"]
+       }'
     end
 
     it do
@@ -307,10 +345,10 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'setting quorum of servers with default ports with servers as hash' do
-    let(:params) do
-      {
-        :servers => {'12' => '192.168.1.1', '23' => '192.168.1.2'}
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         servers => {"12" => "192.168.1.1", "23" => "192.168.1.2"},
+       }'
     end
 
     it do
@@ -327,11 +365,11 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'setting quorum of servers with default ports with observer' do
-    let(:params) do
-      {
-      :servers => ['192.168.1.1', '192.168.1.2', '192.168.1.3', '192.168.1.4', '192.168.1.5'],
-      :observers => ['192.168.1.4', '192.168.1.5']
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         servers   => ["192.168.1.1", "192.168.1.2", "192.168.1.3", "192.168.1.4", "192.168.1.5"],
+         observers => ["192.168.1.4", "192.168.1.5"]
+       }'
     end
 
     it do
@@ -384,15 +422,15 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'setting quorum of servers with default ports with observer with servers as hash' do
-    let(:params) do
-      {
-        :servers => {'12' => '192.168.1.1',
-                     '23' => '192.168.1.2',
-                     '34' => '192.168.1.3',
-                     '45' => '192.168.1.4',
-                     '56' => '192.168.1.5'},
-        :observers => ['192.168.1.4', '192.168.1.5']
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         servers   => {"12" => "192.168.1.1",
+                       "23" => "192.168.1.2",
+                       "34" => "192.168.1.3",
+                       "45" => "192.168.1.4",
+                       "56" => "192.168.1.5"},
+         observers => ["192.168.1.4", "192.168.1.5"]
+       }'
     end
 
     it do
@@ -445,10 +483,10 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'setting minSessionTimeout' do
-    let(:params) do
-      {
-      :min_session_timeout => 5000
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         min_session_timeout => 5000
+       }'
     end
 
     it do
@@ -459,10 +497,10 @@ describe 'zookeeper::config', :type => :class do
   end
 
   context 'setting maxSessionTimeout' do
-    let(:params) do
-      {
-      :max_session_timeout => 50000
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         max_session_timeout => 50000
+       }'
     end
 
     it do
@@ -472,12 +510,11 @@ describe 'zookeeper::config', :type => :class do
     end
   end
 
-
   context 'make sure port is not included in server IP/hostname' do
-    let(:params) do
-      {
-      :servers => ['192.168.1.1:2888', '192.168.1.2:2333'],
-    }
+    let :pre_condition do
+      'class {"zookeeper":
+         servers => ["192.168.1.1:2888", "192.168.1.2:2333"]
+       }'
     end
 
     it do
@@ -492,4 +529,67 @@ describe 'zookeeper::config', :type => :class do
       ).with_content(/server.2=192.168.1.2:2888:3888/)
     end
   end
+
+  context 'configure logging' do
+    context 'by default set to INFO' do
+      let :pre_condition do
+        'class {"zookeeper": }'
+      end
+
+      it do
+        is_expected.to contain_file(
+          '/etc/zookeeper/conf/log4j.properties'
+        ).with_content(/zookeeper.log.threshold=INFO/)
+      end
+
+      it do
+        is_expected.to contain_file(
+          '/etc/zookeeper/conf/log4j.properties'
+        ).with_content(/zookeeper.console.threshold=INFO/)
+      end
+    end
+
+    context 'allow changing rollingfile loglevel' do
+      let :pre_condition do
+        'class {"zookeeper":
+           rollingfile_threshold => "TRACE",
+         }'
+      end
+
+      it do
+        is_expected.to contain_file(
+          '/etc/zookeeper/conf/log4j.properties'
+        ).with_content(/zookeeper.log.threshold=TRACE/)
+      end
+    end
+
+    context 'allow changing console loglevel' do
+      let :pre_condition do
+        'class {"zookeeper":
+           console_threshold => "TRACE",
+         }'
+      end
+
+      it do
+        is_expected.to contain_file(
+          '/etc/zookeeper/conf/log4j.properties'
+        ).with_content(/zookeeper.console.threshold=TRACE/)
+      end
+    end
+
+    context 'allow changing tracefile loglevel' do
+      let :pre_condition do
+        'class {"zookeeper":
+           tracefile_threshold => "DEBUG",
+         }'
+      end
+
+      it do
+        is_expected.to contain_file(
+          '/etc/zookeeper/conf/log4j.properties'
+        ).with_content(/log4j.appender.TRACEFILE.Threshold=DEBUG/)
+      end
+    end
+  end
+
 end
