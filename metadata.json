@@ -1,6 +1,6 @@
 {
   "name": "deric-zookeeper",
-  "version": "0.7.4",
+  "version": "0.8.2",
   "author": "Tomas Barton",
   "summary": "Module for managing Apache Zookeeper",
   "license": "Apache-2.0",
@@ -11,11 +11,11 @@
   "dependencies": [
     {
       "name": "puppetlabs/stdlib",
-      "version_requirement": ">= 2.3.3 < 5.0.0"
+      "version_requirement": ">= 2.3.3 < 6.0.0"
     },
     {
       "name": "puppet/archive",
-      "version_requirement": ">= 0.4.4 < 2.0.0"
+      "version_requirement": ">= 0.4.4 < 4.0.0"
     }
   ],
   "operatingsystem_support": [
@@ -38,7 +38,8 @@
       "operatingsystemrelease": [
         "6",
         "7",
-        "8"
+        "8",
+        "9"
       ]
     },
     {
@@ -47,14 +48,15 @@
         "10.04",
         "12.04",
         "14.04",
-        "16.04"
+        "16.04",
+        "18.04"
       ]
     }
   ],
   "requirements": [
     {
       "name": "puppet",
-      "version_requirement": ">= 2.7.0 < 5.0.0"
+      "version_requirement": ">= 3.8.0 < 6.0.0"
     }
   ]
 }

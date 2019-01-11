@@ -58,7 +58,7 @@ describe 'zookeeper::config' do
       let :pre_condition do
         'class {"zookeeper":
            log4j_prop => "ERROR",
-           snap_count => "15000",
+           snap_count => 15000,
          }'
       end
 
@@ -117,7 +117,7 @@ describe 'zookeeper::config' do
     context 'max allowed connections' do
       let :pre_condition do
         'class {"zookeeper":
-           max_allowed_connections => "15",
+           max_allowed_connections => 15,
          }'
       end
 
@@ -145,7 +145,7 @@ describe 'zookeeper::config' do
     context 'setting tick time' do
       let :pre_condition do
         'class {"zookeeper":
-           tick_time => "3000",
+           tick_time => 3000,
          }'
       end
 
@@ -157,8 +157,8 @@ describe 'zookeeper::config' do
     context 'setting init and sync limit' do
       let :pre_condition do
         'class {"zookeeper":
-           init_limit => "15",
-           sync_limit => "10",
+           init_limit => 15,
+           sync_limit => 10,
          }'
       end
 
@@ -204,7 +204,7 @@ describe 'zookeeper::config' do
     let(:cfg_dir) { '/etc/zookeeper/conf' }
     let(:log_dir) { '/var/lib/zookeeper' }
     let(:id_file) { '/etc/zookeeper/conf/myid' }
-    let(:myid)    { /1/ }
+    let(:myid)    { /^1/ }
 
     precond = 'class {"zookeeper": }'
 
@@ -226,7 +226,7 @@ describe 'zookeeper::config' do
     let(:cfg_dir) { '/var/lib/zookeeper/conf' }
     let(:log_dir) { '/var/lib/zookeeper/log' }
     let(:id_file) { '/var/lib/zookeeper/conf/myid' }
-    let(:myid)    { /2/ }
+    let(:myid)    { /^2/ }
 
     it_behaves_like 'common', 'Debian', 'wheezy', '7', precond
   end

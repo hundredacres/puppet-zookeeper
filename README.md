@@ -8,9 +8,15 @@ A puppet receipt for [Apache Zookeeper](http://zookeeper.apache.org/). ZooKeeper
 
 ## Requirements
 
-  * Puppet 3.x, Puppet 4.x
-  * Ruby 1.9.3, 2.0.0, 2.1.x
-  * Binary or source package of ZooKeeper
+  * Puppet
+  * Binary or ZooKeeper source code archive
+
+Compatibility matrix:
+
+| `puppet-zookeeper`| Puppet 3.x    | Puppet 4.x   | Puppet 5.x |
+| ----------------- | ------------- |--------------| -----------|
+| `0.7.x`           | :heavy_check_mark: | :heavy_check_mark: | :question: |
+| `0.8.x`           | :x:  | :heavy_check_mark: |  :heavy_check_mark: |
 
 ## Basic Usage:
 
@@ -166,6 +172,10 @@ After=network-online.target
    - `archive_install_dir` controls the installation directory when using source packages (defaults to `/opt`)
    - `archive_symlink` controls the name of a version-independent symlink when using source packages
    - `archive_dl_url` allows to change the download URL for source packages (defaults to apache.org)
+   - `systemd_path` where to put `systemd` service files (applies only if `manage_service_file` and `service_provider == 'systemd'`)
+   - `restart_on_change` whether ZooKeeper service should be restarted on configuration files change (default: `true`)
+   - `remove_host_principal` whether to remove host from Kerberos principal (default: `false`)
+   - `remove_realm_principal` whether to remove relam from Kerberos principal (default: `false`)
 
 and many others, see the `params.pp` file for more details.
 
@@ -186,9 +196,16 @@ class { 'zookeeper':
   console_threshold     => 'INFO',
   rollingfile_threshold => 'INFO',
   tracefile_threshold   => 'TRACE',
+  maxfilesize           => '256MB',
+  maxbackupindex        => 20,
 }
 ```
-supported values are: `ALL`, `DEBUG`, `ERROR`, `FATAL`, `INFO`, `OFF`, `TRACE` and `WARN`.
+Threshold supported values are: `ALL`, `DEBUG`, `ERROR`, `FATAL`, `INFO`, `OFF`, `TRACE` and `WARN`.
+
+[Maxfilesize](https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/RollingFileAppender.html#maxFileSize)
+
+[MaxBackupIndex](https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/RollingFileAppender.html#maxBackupIndex)
+
 
 ## Hiera Support
 

@@ -1,3 +1,41 @@
+## 0.8.1
+* Allow newer dependencies stdlib, archive, puppet (#116)
+* Include SASL parameters in init.pp (#115)
+
+## 0.8.0
+* Dropped Puppet 3 support (still might work with `FUTURE_PARSER=true`)
+
+## 0.7.7
+- [Full diff](https://github.com/deric/puppet-zookeeper/compare/v0.7.6...v0.7.7)
+- Drop testing on Ruby 1.9.3
+- Include Puppet 5 in build matrix
+- Fixes:
+  - [Replace sh with bash in systemd unit](https://github.com/deric/puppet-zookeeper/pull/113) #113
+
+## 0.7.6
+- [Full diff](https://github.com/deric/puppet-zookeeper/compare/v0.7.5...v0.7.6)
+- Fixes:
+  - [zookeeper does not start under debian stretch](https://github.com/deric/puppet-zookeeper/issues/109) #109
+
+## 0.7.5
+- [Full diff](https://github.com/deric/puppet-zookeeper/compare/v0.7.4...v0.7.5)
+- New features:
+  - Support Debian 9
+  - [Allow configuring log file size](https://github.com/deric/puppet-zookeeper/pull/105)
+  - [Allow customizing systed path](https://github.com/deric/puppet-zookeeper/commit/96ae6ee6fd398249d9218c8b242ac39d950bdd9a)
+- Fixes:
+  - [Properly configure log dir](https://github.com/deric/puppet-zookeeper/issues/108) #108
+  - [Fix systemd wants directive](https://github.com/deric/puppet-zookeeper/issues/103) #103
+  - [replace all resource-style class with plain `include`](https://github.com/deric/puppet-zookeeper/pull/106)
+
+## 0.7.4
+- [Full diff](https://github.com/deric/puppet-zookeeper/compare/v0.7.3...v0.7.4)
+- New features:
+  - [Allow service restarts to be skipped on change](https://github.com/deric/puppet-zookeeper/pull/100) #100
+  - [Provide option to remove host and realm from Kerberos principal](https://github.com/deric/puppet-zookeeper/pull/99)
+- Fixes:
+  - [systemd classpath overwritten](https://github.com/deric/puppet-zookeeper/issues/101) #102
+
 ## 0.7.3
 - New features:
   - [Enable possibility of system users for zookeeper](https://github.com/deric/puppet-zookeeper/pull/98) #98

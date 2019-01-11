@@ -89,6 +89,7 @@ class zookeeper::params {
   $manage_service_file = false
   $pid_dir = '/var/run'
   $pid_file = undef
+  $restart_on_change = true
   $service_ensure = 'running'
   $service_name = $_params['service_name']
   $service_provider = $_params['service_provider']
@@ -96,6 +97,7 @@ class zookeeper::params {
   # donate the matching directives in the [Unit] section
   $systemd_unit_want = undef
   $systemd_unit_after = 'network.target'
+  $systemd_path = '/etc/systemd/system'
 
   $zk_dir = '/etc/zookeeper'
   # zookeeper config
@@ -137,12 +139,18 @@ class zookeeper::params {
   $rollingfile_threshold = 'INFO'
   $console_threshold = 'INFO'
   $tracefile_threshold = 'TRACE'
+  $maxfilesize = '256MB'
+  $maxbackupindex = 20
 
   # sasl options
+  $sasl_krb5 = true
+  $sasl_users = {}
   $keytab_path = '/etc/zookeeper/conf/zookeeper.keytab'
   $principal = "zookeeper/${::fqdn}"
   $realm = $::domain
   $store_key = true
   $use_keytab = true
   $use_ticket_cache = false
+  $remove_host_principal = false
+  $remove_realm_principal = false
 }

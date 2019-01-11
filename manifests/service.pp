@@ -1,7 +1,7 @@
 # Class: zookeeper::service
 #
 # PRIVATE CLASS - do not use directly (use main `zookeeper` class).
-class zookeeper::service {
+class zookeeper::service inherits zookeeper {
   require ::zookeeper::install
 
   case $::zookeeper::install_method {
@@ -18,7 +18,7 @@ class zookeeper::service {
 
   if $::zookeeper::manage_service_file == true {
     if $::zookeeper::service_provider == 'systemd'  {
-      file { "/usr/lib/systemd/system/${::zookeeper::service_name}.service":
+      file { "${::zookeeper::systemd_path}/${::zookeeper::service_name}.service":
         ensure  => 'present',
         content => template("${module_name}/zookeeper.service.erb"),
         }
@@ -48,9 +48,12 @@ class zookeeper::service {
       Class['::zookeeper::install'],
       File["${::zookeeper::cfg_dir}/zoo.cfg"]
     ],
-    subscribe  => [
-      File["${::zookeeper::cfg_dir}/myid"], File["${::zookeeper::cfg_dir}/zoo.cfg"],
-      File["${::zookeeper::cfg_dir}/${::zookeeper::environment_file}"], File["${::zookeeper::cfg_dir}/log4j.properties"],
-    ]
+  }
+
+  if $::zookeeper::restart_on_change {
+    File["${::zookeeper::cfg_dir}/myid"] ~> Service[$::zookeeper::service_name]
+    File["${::zookeeper::cfg_dir}/zoo.cfg"] ~> Service[$::zookeeper::service_name]
+    File["${::zookeeper::cfg_dir}/${::zookeeper::environment_file}"] ~> Service[$::zookeeper::service_name]
+    File["${::zookeeper::cfg_dir}/log4j.properties"] ~> Service[$::zookeeper::service_name]
   }
 }

@@ -5,12 +5,10 @@ ZOOCFGDIR=<%= scope.lookupvar("zookeeper::cfg_dir") %>
 # TODO this is really ugly
 # How to find out, which jars are needed?
 # seems, that log4j requires the log4j.properties file to be in the classpath
-CLASSPATH="$ZOOCFGDIR:/usr/share/java/jline.jar:/usr/share/java/log4j-1.2.jar:/usr/share/java/xercesImpl.jar:/usr/share/java/xmlParserAPIs.jar:/usr/share/java/netty.jar:/usr/share/java/slf4j-api.jar:/usr/share/java/slf4j-log4j12.jar:/usr/share/java/zookeeper.jar"
+CLASSPATH="<%= scope.lookupvar("zookeeper::cfg_dir") %>:/usr/share/java/jline.jar:/usr/share/java/log4j-1.2.jar:/usr/share/java/xercesImpl.jar:/usr/share/java/xmlParserAPIs.jar:/usr/share/java/netty.jar:/usr/share/java/slf4j-api.jar:/usr/share/java/slf4j-log4j12.jar:/usr/share/java/zookeeper.jar"
 <% end -%>
 
-#ZOOCFG="zoo.cfg"
-# necessary on Debian
-ZOOCFG="$ZOOCFGDIR/zoo.cfg"
+ZOOCFG="<%= scope.lookupvar("zookeeper::cfg_dir") %>/zoo.cfg"
 ZOO_LOG_DIR=<%= scope.lookupvar("zookeeper::log_dir") %>
 USER=<%= scope.lookupvar("zookeeper::user") %>
 GROUP=<%= scope.lookupvar("zookeeper::group") %>
@@ -27,4 +25,4 @@ JAVA_OPTS="${JAVA_OPTS} -Djava.security.auth.login.config=<%= File.join(scope.lo
 <% end -%>
 # will be concatenated with JVMFLAGS var
 # see https://github.com/apache/zookeeper/blob/master/bin/zkServer.sh#L78
-export SERVER_JVMFLAGS=$JAVA_OPTS
+SERVER_JVMFLAGS=$JAVA_OPTS

@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 group :tests do
-  puppetversion = ENV.key?('PUPPET_VERSION') ? "#{ENV['PUPPET_VERSION']}" : ['>= 2.7.0', '< 5.0']
+  puppetversion = ENV.key?('PUPPET_VERSION') ? "#{ENV['PUPPET_VERSION']}" : ['>= 2.7.0', '< 6.0']
   gem 'puppet', puppetversion
   gem 'rake'
   gem 'puppet-lint'
@@ -13,29 +13,17 @@ group :tests do
   gem 'rspec-puppet-facts'
   gem 'rspec', '>= 3.0.0'
   gem 'rspec-puppet', '>= 2.3.0'
-  if RUBY_VERSION < "2.0.0"
-    gem 'json', '< 2.0' # newer versions requires at least ruby 2.0
-    gem 'json_pure', '< 2.0.0'
-    gem 'fog-google', '< 0.1.1'
-    gem 'google-api-client', '< 0.9'
-    gem 'public_suffix', '< 1.5.0'
-    gem 'parallel_tests', '< 2.10'
-    gem 'metadata-json-lint', '< 1.2.0', require: false
-  else
-    gem 'metadata-json-lint', require: false
-  end
-  if RUBY_VERSION < "2.1.0"
-    gem 'nokogiri', '< 1.7.0'
-  end
+  gem 'metadata-json-lint', require: false
+end
+
+# xmlrpc used to be bundled with Ruby until 2.4
+if RUBY_VERSION >= '2.4.0'
+  gem 'xmlrpc'
 end
 
 group :development do
-  if RUBY_VERSION < "2.0.0"
-    gem 'rubocop','~> 0.33.0'
-  else
-    gem 'rubocop'
-  end
-  gem 'puppet-blacksmith'
+  gem 'rubocop', '>= 0.49.0'
+  gem 'puppet-blacksmith', git: 'https://github.com/deric/puppet-blacksmith', branch: 'tag-order'
 end
 
 group :system_tests do

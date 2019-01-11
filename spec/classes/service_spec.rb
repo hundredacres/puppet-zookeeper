@@ -6,7 +6,7 @@ describe 'zookeeper::service' do
     :operatingsystem => 'Debian',
     :osfamily => 'Debian',
     :lsbdistcodename => 'wheezy',
-    :operatingsystemmajrelease => '6',
+    :operatingsystemmajrelease => '7',
     :puppetversion => Puppet.version,
   }
   end
@@ -18,9 +18,9 @@ describe 'zookeeper::service' do
      }'
   end
 
-  it { should contain_package('zookeeperd') }
+  it { is_expected.to contain_package('zookeeperd') }
   it do
-    should contain_service('zookeeper').with(
+    is_expected.to contain_service('zookeeper').with(
       :ensure => 'running',
       :enable => true
     )
@@ -47,6 +47,7 @@ describe 'zookeeper::service' do
       'class {"zookeeper":
          manage_service_file => true,
          service_provider    => "systemd",
+         systemd_path        => "/usr/lib/systemd/system",
          zoo_dir             => "/usr/lib/zookeeper",
          log_dir             => "/var/log/zookeeper",
        }'
@@ -55,7 +56,7 @@ describe 'zookeeper::service' do
     it { should contain_package('zookeeper') }
 
     it do
-      should contain_file(
+      is_expected.to contain_file(
         '/usr/lib/systemd/system/zookeeper-server.service'
       ).with({
         'ensure' => 'present',
@@ -63,13 +64,13 @@ describe 'zookeeper::service' do
     end
 
     it do
-      should contain_file(
+      is_expected.to contain_file(
         '/usr/lib/systemd/system/zookeeper-server.service'
       ).with_content(/zookeeper\.jar/)
     end
 
     it do
-      should contain_service('zookeeper-server').with(
+      is_expected.to contain_service('zookeeper-server').with(
         :ensure => 'running',
         :enable => true
       )
@@ -84,20 +85,20 @@ describe 'zookeeper::service' do
          }'
       end
 
-        it do
-          should contain_file(
-            '/usr/lib/systemd/system/my-zookeeper.service'
-          ).with({
-            'ensure' => 'present',
-          })
-        end
+      it do
+        is_expected.to contain_file(
+          '/etc/systemd/system/my-zookeeper.service'
+        ).with({
+          'ensure' => 'present',
+        })
+      end
 
-        it do
-          should contain_service('my-zookeeper').with(
-            :ensure => 'running',
-            :enable => true
-          )
-        end
+      it do
+        is_expected.to contain_service('my-zookeeper').with(
+          :ensure => 'running',
+          :enable => true
+        )
+      end
     end
 
     context 'install from archive' do
@@ -111,8 +112,8 @@ describe 'zookeeper::service' do
       end
 
       it do
-        should contain_file(
-          '/usr/lib/systemd/system/zookeeper-server.service'
+        is_expected.to contain_file(
+          '/etc/systemd/system/zookeeper-server.service'
         ).with_content(/zookeeper-3\.4\.9\.jar/)
       end
 
@@ -128,11 +129,52 @@ describe 'zookeeper::service' do
       end
 
       it do
-        should_not contain_file(
+        is_expected.not_to contain_file(
           '/usr/lib/systemd/system/zookeeper.service'
         ).with({
           'ensure' => 'present',
         })
+      end
+
+      it do
+        is_expected.not_to contain_file(
+          '/etc/systemd/system/zookeeper.service'
+        ).with({
+          'ensure' => 'present',
+        })
+      end
+    end
+
+    context 'systemd dependencies' do
+      let :pre_condition do
+        'class {"zookeeper":
+           service_provider    => "systemd",
+           manage_service_file => true,
+           manage_service      => true,
+           systemd_unit_after  => "network-online.target openvpn-client@.service",
+           systemd_unit_want   => "network-online.target openvpn-client@.service",
+         }'
+      end
+
+      it do
+        is_expected.to contain_file(
+          '/etc/systemd/system/zookeeper-server.service'
+        ).with({
+          'ensure' => 'present',
+        })
+      end
+
+      it do
+        is_expected.to contain_file(
+          '/etc/systemd/system/zookeeper-server.service'
+        ).with_content(/Wants=network-online.target openvpn-client@.service/)
+      end
+
+      it do
+        is_expected.to contain_service('zookeeper-server').with(
+          :ensure => 'running',
+          :enable => true
+        )
       end
     end
   end
@@ -164,7 +206,7 @@ describe 'zookeeper::service' do
     end
 
     it do
-      should contain_file(
+      is_expected.to contain_file(
         '/etc/init.d/zookeeper'
       ).with({
         'ensure' => 'present',
@@ -172,11 +214,68 @@ describe 'zookeeper::service' do
     end
 
     it do
-      should contain_service('zookeeper').with(
+      is_expected.to contain_service('zookeeper').with(
         :ensure   => 'running',
         :enable   => true,
         :provider => 'init',
       )
     end
+  end
+
+  context 'Debian 9' do
+    puppet = Puppet.version
+    let(:facts) do
+      {
+      :operatingsystem => 'Debian',
+      :osfamily => 'Debian',
+      :lsbdistcodename => 'stretch',
+      :operatingsystemmajrelease => '9',
+      :puppetversion => puppet,
+      :path => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+      :puppetversion => Puppet.version,
+    }
+    end
+
+    let(:user) { 'zookeeper' }
+    let(:group) { 'zookeeper' }
+
+    let :pre_condition do
+      'class {"zookeeper":
+         service_provider    => "systemd",
+         manage_service_file => true,
+         manage_service      => true,
+         systemd_unit_after  => "network-online.target openvpn-client@.service",
+         systemd_unit_want   => "network-online.target openvpn-client@.service",
+       }'
+    end
+
+    it do
+      is_expected.to contain_file(
+        '/etc/systemd/system/zookeeper.service'
+      ).with({
+        'ensure' => 'present',
+      })
+    end
+
+    it do
+      is_expected.to contain_file(
+        '/etc/systemd/system/zookeeper.service'
+      ).with_content(/Wants=network-online.target openvpn-client@.service/)
+    end
+
+    it do
+      is_expected.to contain_service('zookeeper').with(
+        :ensure => 'running',
+        :enable => true
+      )
+    end
+
+    # TODO: doesn't apply to Debian
+    it do
+      is_expected.to contain_file(
+        '/etc/systemd/system/zookeeper.service'
+      ).with_content(/CLASSPATH="\/usr\/lib\/zookeeper\/zookeeper.jar/)
+    end
+
   end
 end
